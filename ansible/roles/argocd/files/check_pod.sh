@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 LABEL_KEY=$1
 LABEL_VALUE=$2

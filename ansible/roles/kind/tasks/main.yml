@@ -35,7 +35,7 @@
     mode: "644"
   when: (not cluster_check_result.exists)
 
-- name: install kind cluster
+- name: Install kind cluster
   command: kind create cluster --config=/tmp/kind-config.yaml --wait 30s
   register: kind_cluster_result
   when: (not cluster_check_result.exists)
