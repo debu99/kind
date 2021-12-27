@@ -48,7 +48,7 @@
     prometheusPort: "{{ prometheusPort.stdout}}"
 
 - name: Get Requests Per Second
-  shell: "curl -s --data-urlencode 'query=sum(nginx_ingress_controller_requests{exported_service=~\"foo|bar\"})' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv'"
+  shell: "curl -s --data-urlencode 'query=sum(increase(nginx_ingress_controller_requests{exported_service=~\"foo|bar\"}[{{ step }}])) by(app_kubernetes_io_instance)' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv'"
   register: reqPerSec
 
 - name: Debug
@@ -56,7 +56,7 @@
     msg: "reqPerSec: {{ reqPerSec.stdout }}"
 
 - name: Get CPU usage
-  shell: "curl -s --data-urlencode 'query=container_cpu_usage_seconds_total{pod=~\"nginx-.*\", container=\"controller\", id=~\"/kubelet/.*\", image!=\"\", container_name!=\"POD\"}' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv' | awk '{print $2}'"
+  shell: "curl -s --data-urlencode 'query=sum(rate(nginx_ingress_controller_nginx_process_cpu_seconds_total{}[{{ step }}]))' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv' | awk '{print $2}'"
   register: cpuUsage
 
 - name: Debug
@@ -64,7 +64,7 @@
     msg: "cpuUsage: {{ cpuUsage.stdout }}"
 
 - name: Get memory usage
-  shell: "curl -s --data-urlencode 'query=container_memory_working_set_bytes{pod=~\"nginx-.*\", container=\"controller\", id=~\"/kubelet/.*\", image!=\"\"}' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv' | awk '{print $2}'"
+  shell: "curl -s --data-urlencode 'query=avg(nginx_ingress_controller_nginx_process_resident_memory_bytes{})' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv' | awk '{print $2}'"
   register: memoryUsage
 
 - name: Debug
