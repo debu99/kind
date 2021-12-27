@@ -30,7 +30,7 @@
 
 - name: Argocd sync
   command: "argocd app sync argocd-applications"
-  async: 180 # Maximum allowed time in Seconds
+  async: 360 # Maximum allowed time in Seconds
   poll: 10 # Polling Interval in Seconds
 
 - name: Revert namespace
