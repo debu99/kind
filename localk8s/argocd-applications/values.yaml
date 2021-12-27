@@ -1,5 +1,5 @@
 cluster: https://kubernetes.default.svc
 project: default
-repoURL: https://gitlab.com/doctoranywhere/devops/kind.git
+repoURL: https://github.com/debu99/kind.git
 repoBranch: master
 clusterName: localk8s
