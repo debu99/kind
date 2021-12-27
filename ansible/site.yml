@@ -1,0 +1,11 @@
+- hosts: test
+  vars:
+    cluster_name: localk8s
+    git_url: https://github.com/debu99/kind.git
+    git_user: git
+  become: yes
+  roles:
+  - role: docker
+  - role: kind
+  - role: argocd
+  - role: benchmark

@@ -1,0 +1,100 @@
+---
+- name: Pull wrk image
+  docker_image:
+    name: williamyeh/wrk
+    source: pull
+
+- name: Upload wrk lua script
+  copy:
+    src: "{{ role_path }}/files/"
+    dest: /tmp
+
+- name: Get start timestamp from the system
+  shell: "date +%Y-%m-%dT%H:%M:%SZ"
+  register: stime
+
+- name: Echo start time
+  debug:
+    msg: "Start time: {{ stime.stdout }}"
+
+- name: Run wrk
+  command: "docker run --rm --net=host -v /tmp:/data williamyeh/wrk -t{{ wrk_threads }} -c{{ wrk_connection }} -d{{ wrk_duration }}s -s random_path.lua --latency http://localhost"
+
+- name: Get end timestamp from the system
+  shell: "date +%Y-%m-%dT%H:%M:%SZ"
+  register: etime
+
+- name: Echo start time
+  debug:
+    msg: "End time: {{ etime.stdout }}"
+
+- name: Get prometheus port
+  shell: "kubectl get svc -n monitoring prometheus-server -o json | jq -re '.spec.ports[]|select(.targetPort==9090)|.nodePort'"
+  register: prometheusPort
+
+- name: Get prometheus IP
+  shell: "kubectl get node -o json | jq -re '.items[]|select(.metadata.name==\"{{ cluster_name }}-worker\")|.status.addresses[]|select(.type==\"InternalIP\")|.address'"
+  register: prometheusIP
+
+- name: Debug
+  debug:
+    msg: "prometheusIP: {{ prometheusIP.stdout }}, prometheusPort: {{ prometheusPort.stdout }}"
+
+- name: Set variables
+  set_fact:
+    startTime: "{{ stime.stdout}}"
+    endTime: "{{ etime.stdout}}"
+    prometheusIP: "{{ prometheusIP.stdout}}"
+    prometheusPort: "{{ prometheusPort.stdout}}"
+
+- name: Get Requests Per Second
+  shell: "curl -s --data-urlencode 'query=sum(nginx_ingress_controller_requests{exported_service=~\"foo|bar\"})' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv'"
+  register: reqPerSec
+
+- name: Debug
+  debug:
+    msg: "reqPerSec: {{ reqPerSec.stdout }}"
+
+- name: Get CPU usage
+  shell: "curl -s --data-urlencode 'query=container_cpu_usage_seconds_total{pod=~\"nginx-.*\", container=\"controller\", id=~\"/kubelet/.*\", image!=\"\", container_name!=\"POD\"}' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv' | awk '{print $2}'"
+  register: cpuUsage
+
+- name: Debug
+  debug:
+    msg: "cpuUsage: {{ cpuUsage.stdout }}"
+
+- name: Get memory usage
+  shell: "curl -s --data-urlencode 'query=container_memory_working_set_bytes{pod=~\"nginx-.*\", container=\"controller\", id=~\"/kubelet/.*\", image!=\"\"}' \"http://{{ prometheusIP }}:{{ prometheusPort }}/api/v1/query_range?start={{ startTime }}&end={{ endTime }}&step={{ step }}\" | jq -r '.data.result[].values[] | @tsv' | awk '{print $2}'"
+  register: memoryUsage
+
+- name: Debug
+  debug:
+    msg: "memoryUsage: {{ memoryUsage.stdout }}"
+
+- name: echo
+  shell: "echo \"${reqPerSec}\" \"${cpuUsage}\"  \"${memoryUsage}\""
+  environment:
+    reqPerSec: "{{ reqPerSec.stdout }}"
+    cpuUsage: "{{ cpuUsage.stdout }}"
+    memoryUsage: "{{ memoryUsage.stdout }}"
+
+- name: Generate csv
+  shell: awk -v awk_lpart="${reqPerSec}" -v awk_mpart="${cpuUsage}" -v awk_rpart="${memoryUsage}" {%raw%}'BEGIN{split(awk_lpart,lp,/\n/); split(awk_mpart,mp,/\n/); split(awk_rpart,rp,/\n/); for(i=1; i in lp; i++) {printf("%s\t%s\t%s\n",lp[i],mp[i],rp[i])}}'{%endraw%} | sed 's/\t/,/g' > /tmp/{{ endTime }}.csv
+  environment:
+    reqPerSec: "{{ reqPerSec.stdout }}"
+    cpuUsage: "{{ cpuUsage.stdout }}"
+    memoryUsage: "{{ memoryUsage.stdout }}"
+
+- name: Display csv contents
+  command: cat /tmp/{{ endTime }}.csv
+  register: csv_output
+
+- name: Print to console
+  debug:
+    msg: "{{csv_output.stdout}}"
+
+- name: Fetch file
+  fetch:
+    src: /tmp/{{ endTime }}.csv
+    dest: "{{ endTime }}.csv"
+    flat: yes

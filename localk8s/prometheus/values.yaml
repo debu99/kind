@@ -1,0 +1,30 @@
+prometheus:
+  serviceAccounts:
+    alertmanager:
+      create: false
+    pushgateway:
+      create: false
+  alertmanager:
+    enabled: false
+  pushgateway:
+    enabled: false
+  server:
+    global:
+      scrape_interval: 10s
+      scrape_timeout: 5s
+      evaluation_interval: 15s
+    namespaces: []
+    useExistingClusterRoleName: 
+    persistentVolume:
+      size: 10Gi
+    retention: 48h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 500m
+        memory: 800Mi
+    service:
+      type: NodePort
+      nodePort: 30999

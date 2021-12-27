@@ -1,0 +1,13 @@
+metrics-server:
+  apiService:
+    create: true
+  extraArgs:
+    kubelet-insecure-tls: true
+    kubelet-preferred-address-types: InternalIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 50Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi

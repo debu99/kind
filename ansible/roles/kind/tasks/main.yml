@@ -1,0 +1,41 @@
+---
+- name: Download kind
+  get_url:
+    url: https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64
+    dest: /usr/local/bin/kind
+    mode: 0755
+
+- name: Add an apt signing key for Kubernetes
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Adding apt repository for Kubernetes
+  apt_repository:
+    repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    update_cache: true
+
+- name: Install kubectl
+  apt: 
+    name:
+      - kubectl
+    state: present
+    update_cache: yes
+
+- name: "Check if kind cluster exists"
+  docker_container_info:
+    name: "{{ cluster_name }}-control-plane"
+  register: cluster_check_result
+
+- name: Create KinD Config
+  template:
+    dest: /tmp/kind-config.yaml
+    src: 'kind-config.yaml.j2'
+    mode: "644"
+  when: (not cluster_check_result.exists)
+
+- name: install kind cluster
+  command: kind create cluster --config=/tmp/kind-config.yaml --wait 30s
+  register: kind_cluster_result
+  when: (not cluster_check_result.exists)

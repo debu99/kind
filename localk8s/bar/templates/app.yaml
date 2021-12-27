@@ -1,0 +1,65 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ .Values.app.name }}
+    release: {{ .Release.Name }}
+  type: {{ default "ClusterIP" .Values.service.type | quote }}  
+  ports:
+  - name: serverport
+    port: {{ .Values.service.port }}
+    targetPort: {{ .Values.image.containerPort }}
+  {{- if ne .Values.service.port .Values.image.containerPort }}
+  - name: containerport
+    port: {{ .Values.image.containerPort }}
+    targetPort: {{ .Values.image.containerPort }}
+  {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+    release: {{ .Release.Name }}
+spec:
+  strategy:
+    type: RollingUpdate
+  replicas: {{ .Values.image.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Values.app.name }}
+        image: "{{ .Values.image.repo }}:{{ .Values.image.tag }}"
+        args: ["-text='hello {{ .Values.app.name }}'", "-listen=:{{ .Values.image.containerPort }}"]
+        imagePullPolicy: {{ default "IfNotPresent" .Values.image.imagePullPolicy | quote }}
+        ports:
+        - containerPort: {{ .Values.image.containerPort }}
+        livenessProbe:
+          initialDelaySeconds: 5
+          tcpSocket:
+            port: {{ .Values.image.containerPort }}
+          timeoutSeconds: 3
+        readinessProbe:
+          initialDelaySeconds: 5
+          tcpSocket:
+            port: {{ .Values.image.containerPort }}
+          timeoutSeconds: 3
+        resources:
+{{ toYaml .Values.image.resources | indent 10 }}
+      restartPolicy: Always
+

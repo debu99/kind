@@ -1,0 +1,56 @@
+---
+- name: Upload bash scripts
+  copy:
+    src: "{{ role_path }}/files/"
+    dest: /tmp
+
+- name: Install argocd
+  command: bash /tmp/argocd_install.sh
+
+- name: Upload argocd configmap
+  template:
+    dest: /tmp/argocd_configmap.yaml
+    src: 'argocd_configmap.yaml.j2'
+    mode: "644"
+
+- name: Install argocd
+  command: kubectl apply -n argocd -f /tmp/argocd_configmap.yaml
+
+- name: Download argocd cli
+  get_url:
+    url: https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+    dest: /usr/local/bin/argocd
+    mode: 0755
+
+- name: Argocd login
+  command: "argocd login cd.argoproj.io --core"
+
+- name: Change namespace
+  command: "kubectl config set-context --current --namespace=argocd"
+
+- name: Argocd sync
+  command: "argocd app sync argocd-applications"
+
+- name: Revert namespace
+  command: "kubectl config set-context --current --namespace=default"
+
+- name: Check pods
+  command: bash /tmp/check_pod.sh {{ item.key }} {{ item.value }} {{ item.namespace }}
+  loop: "{{ pods }}"
+  vars:
+    pods:
+    - key: app.kubernetes.io/name
+      value: argocd-server
+      namespace: argocd
+    - key: app.kubernetes.io/name
+      value: ingress-nginx
+      namespace: ingress
+    - key: app
+      value: foo
+      namespace: default
+    - key: app
+      value: bar
+      namespace: default
+    - key: app
+      value: prometheus
+      namespace: monitoring

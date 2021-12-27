@@ -1,0 +1,4 @@
+wrk_connection: 50
+wrk_threads: 10
+wrk_duration: 30
+step: 10s

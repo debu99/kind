@@ -1,0 +1,5 @@
+cluster: https://kubernetes.default.svc
+project: default
+repoURL: https://gitlab.com/doctoranywhere/devops/kind.git
+repoBranch: master
+clusterName: localk8s

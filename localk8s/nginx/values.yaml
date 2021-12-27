@@ -1,0 +1,66 @@
+ingress-nginx:
+  fullnameOverride: nginx-ingress
+  defaultBackend:
+    enabled: false
+  controller:
+    name: controller
+    kind: Deployment
+    replicaCount: 1
+    updateStrategy: 
+      rollingUpdate:
+        maxUnavailable: 1
+      type: RollingUpdate
+    annotations: {}
+    nodeSelector:
+      kubernetes.io/os: linux
+      ingress-ready: "true"
+    tolerations: 
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Equal
+    resources: 
+      requests:
+        cpu: 50m
+        memory: 100Mi
+      limits:
+        cpu: 100m
+        memory: 200Mi
+    hostPort:
+      enabled: true
+    watchIngressWithoutClass: true
+    extraArgs:
+      publish-status-address: localhost
+    publishService:
+      enabled: false
+    service:
+      type: NodePort
+      #nodePorts:
+      #  http: 31080
+      #  https: 31443
+    metrics:
+      port: 10254
+      enabled: true
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "10254"
+    config:
+      enable-real-ip: "true"
+      use-forwarded-headers: "true"
+      forwarded-for-header: "X-Forwarded-For"
+      use-geoip: "false"
+      use-geoip2: "false"
+      log-format-escape-json: "true"
+      log-format-upstream: '{ "@timestamp": "$time_iso8601", "remote_addr":
+          "$remote_addr", "x-forward-for": "$proxy_add_x_forwarded_for",
+          "request_id": "$req_id", "remote_user": "$remote_user", "bytes_sent":
+          "$bytes_sent", "request_time": "$request_time", "status": "$status",
+          "vhost": "$host", "request_proto": "$server_protocol", "path": "$uri",
+          "request_query": "$args", "request_length": "$request_length",
+          "duration": "$request_time", "method": "$request_method", "http_referrer":
+          "$http_referer", "http_user_agent": "$http_user_agent" }'
+    configAnnotations: {}  
+    proxySetHeaders: {}
+    addHeaders: {}
+
+

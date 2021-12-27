@@ -1,0 +1,52 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-applications
+  namespace: argocd
+spec:
+  destination:
+    namespace: argocd
+    server: "https://kubernetes.default.svc"
+  project: default
+  source:
+    repoURL: "{{ git_url }}"
+    targetRevision: HEAD
+    path: {{ cluster_name }}/argocd-applications
+    helm:
+      version: v3
+      valueFiles:
+        - values.yaml
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+  name: argocd-cm
+  namespace: argocd
+data:
+  repositories: |
+    - url: "{{ git_url }}"
+      usernameSecret:
+        name: argocd-repo-credentials
+        key: username
+      passwordSecret:
+        name: argocd-repo-credentials
+        key: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-repo-credentials
+type: Opaque
+data:
+  username: "{{ git_user | b64encode }}"
+  password: "{{ git_token | b64encode }}"
