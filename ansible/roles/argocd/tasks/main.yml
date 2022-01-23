@@ -16,6 +16,15 @@
 - name: Install argocd
   command: kubectl apply -n argocd -f /tmp/argocd_configmap.yaml
 
+- name: Check argocd status
+  command: bash /tmp/check_pod.sh {{ item.key }} {{ item.value }} {{ item.namespace }}
+  loop: "{{ pods }}"
+  vars:
+    pods:
+    - key: app.kubernetes.io/name
+      value: argocd-server
+      namespace: argocd
+
 - name: Download argocd cli
   get_url:
     url: https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
@@ -41,9 +50,6 @@
   loop: "{{ pods }}"
   vars:
     pods:
-    - key: app.kubernetes.io/name
-      value: argocd-server
-      namespace: argocd
     - key: app.kubernetes.io/name
       value: ingress-nginx
       namespace: ingress
