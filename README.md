@@ -7,7 +7,7 @@ This repo is used to create a Kind K8s cluster on Ubuntu linux and start nginx i
 
 - Install the [Kind](https://kind.sigs.k8s.io) K8s cluster on Ubuntu linux autoatmically
 - Install [ArgoCD](https://argoproj.github.io) and sync the K8s components installation with git repo
-- Run benchmark with [Wrk](https://github.com/wg/wrk) again [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/) and generate a csv result from [Prometheus](https://prometheus.io) endpoint
+- Run benchmark with [Wrk](https://github.com/wg/wrk) against [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/) and generate a csv result from [Prometheus](https://prometheus.io) endpoint
 
 ## Pre-requisite
 The script requires below component to run:
